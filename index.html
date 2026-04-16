@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Akar - Visualisasi Interaktif Terpadu</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <style>
+    /* Desain Apple-Style Frosted Glass */
+    :root {
+      --apple-blue: #0071e3;
+      --apple-blue-hover: #0077ED;
+      --text-main: #1d1d1f;
+      --text-secondary: #86868b;
+      --glass-bg: rgba(255, 255, 255, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.8);
+      --input-bg: rgba(255, 255, 255, 0.5);
+
+      --color-newton: #af52de;
+      --color-bisection: #ff9500;
+      --color-regula: #34c759;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-main);
+      background-color: #f5f5f7;
+      background-image:
+              radial-gradient(at 0% 0%, hsla(253,16%,7%,0.03) 0, transparent 50%),
+              radial-gradient(at 50% 0%, hsla(225,39%,30%,0.05) 0, transparent 50%),
+              radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
+      background-attachment: fixed;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      text-align: center;
+      font-weight: 600;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      margin-top: 0;
+      margin-bottom: 30px;
+      color: var(--text-main);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 18px;
+    }
+
+    .input-group label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .help-text code {
+      background: rgba(0,0,0,0.05);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    input[type="text"], select, input[type="number"] {
+      background: var(--input-bg);
+      border: 1px solid rgba(0,0,0,0.1);
+      color: var(--text-main);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus, select:focus, input[type="number"]:focus {
+      border-color: var(--apple-blue);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+      background: #fff;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--apple-blue);
+      cursor: pointer;
+    }
+    .slider-container input[type="number"] {
+      width: 80px;
+      padding: 10px;
+    }
+
+    .button-group {
+      text-align: center;
+      margin: 30px 0;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    button {
+      background: var(--apple-blue);
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      font-size: 15px;
+      border-radius: 980px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--apple-blue-hover);
+      transform: scale(1.02);
+    }
+
+    button:disabled {
+      background: rgba(0, 0, 0, 0.08);
+      color: rgba(0, 0, 0, 0.3);
+      cursor: not-allowed;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: center;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      font-size: 14px;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.03);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .calculation-steps {
+      margin-top: 30px;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.05);
+      display: none;
+    }
+
+    .calculation-steps h3 {
+      margin-top: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .step-item {
+      margin-bottom: 15px;
+      font-family: "SF Mono", "Menlo", monospace;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      padding-bottom: 15px;
+      line-height: 1.6;
+    }
+
+    .summary-box {
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(52, 199, 89, 0.1);
+      border-radius: 12px;
+      border: 1px solid rgba(52, 199, 89, 0.3);
+    }
+    .summary-box ul li { margin-bottom: 8px; }
+
+    /* Container untuk Multiple Graphics */
+    #graphsWrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .graph-box {
+      width: 100%;
+      height: 500px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.05);
+      background: rgba(255,255,255,0.4);
+      display: none;
+    }
+
+    .txt-newton { color: var(--color-newton); font-weight: 600; }
+    .txt-bisection { color: var(--color-bisection); font-weight: 600; }
+    .txt-regula { color: var(--color-regula); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Kalkulator Akar Non-Linear</h1>
+
+  <div class="controls-grid">
+    <div>
+      <div class="input-group">
+        <label for="equation">Fungsi f(x)</label>
+        <input type="text" id="equation" value="x^2 - 3" placeholder="Misal: x^2 - 3">
+        <div class="help-text">
+          Pastikan format penulisan benar. Perkalian gunakan bintang (<code>*</code>). <br>
+          Contoh: <code>x^2 - 3</code>, <code>2*x + 1</code>, <code>cos(x)</code>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="methodSelect">Metode Pencarian</label>
+        <select id="methodSelect" onchange="toggleInputs()">
+          <option value="all">Bandingkan Semua Metode (3 Grafik)</option>
+          <option value="newton">Newton-Raphson</option>
+          <option value="bisection">Bagi Dua (Bisection)</option>
+          <option value="regula">Regula Falsi</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label for="epsilon">Toleransi Error (&epsilon;)</label>
+        <input type="number" id="epsilon" value="0.0001" step="any">
+        <div class="help-text">Batas nilai f(x) dianggap konvergen ke 0.</div>
+      </div>
+    </div>
+
+    <div>
+      <div id="newtonInputGroup">
+        <div class="input-group">
+          <label>Tebakan Awal (x₀) [Newton-Raphson]</label>
+          <div class="slider-container">
+            <input type="range" id="x0Slider" min="-10" max="10" step="0.1" value="1" oninput="syncVal('x0')">
+            <input type="number" id="x0Num" value="1" oninput="syncSlider('x0')">
+          </div>
+        </div>
+      </div>
+
+      <div id="bracketInputGroup">
+        <div class="input-group">
+          <label>Batas Bawah (a) [Bisection/Regula]</label>
+          <div class="slider-container">
+            <input type="range" id="aSlider" min="-10" max="10" step="0.1" value="1" oninput="syncVal('a')">
+            <input type="number" id="aNum" value="1" oninput="syncSlider('a')">
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Batas Atas (b) [Bisection/Regula]</label>
+          <div class="slider-container">
+            <input type="range" id="bSlider" min="-10" max="10" step="0.1" value="2" oninput="syncVal('b')">
+            <input type="number" id="bNum" value="2" oninput="syncSlider('b')">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="button-group">
+    <button onclick="initProcess()">Set Parameter & Gambar Grafik</button>
+    <button id="btnNext" onclick="nextIteration()" disabled>Lanjut Iterasi >></button>
+  </div>
+
+  <div id="graphsWrapper"></div>
+
+  <div id="tableWrapper" style="overflow-x:auto; display: none;">
+    <table id="resultTable">
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="calculation-steps" id="calcStepsContainer">
+    <h3>Detail Perhitungan</h3>
+    <div id="calcSteps"></div>
+  </div>
+</div>
+
+<script>
+  let expr, derivExpr;
+  let method, iteration;
+  let states = {};
+  let funcStr, epsilon;
+
+  function syncVal(id) { document.getElementById(id+'Num').value = document.getElementById(id+'Slider').value; }
+  function syncSlider(id) { document.getElementById(id+'Slider').value = document.getElementById(id+'Num').value; }
+
+  function toggleInputs() {
+    const m = document.getElementById('methodSelect').value;
+    document.getElementById('newtonInputGroup').style.display = (m === 'newton' || m === 'all') ? 'block' : 'none';
+    document.getElementById('bracketInputGroup').style.display = (m === 'bisection' || m === 'regula' || m === 'all') ? 'block' : 'none';
+  }
+  toggleInputs();
+
+  function initProcess() {
+    funcStr = document.getElementById('equation').value;
+    method = document.getElementById('methodSelect').value;
+    epsilon = parseFloat(document.getElementById('epsilon').value);
+
+    if (isNaN(epsilon) || epsilon <= 0) {
+      alert("Toleransi error (Epsilon) harus berupa angka positif yang valid.");
+      return;
+    }
+
+    try {
+      expr = math.compile(funcStr);
+      derivExpr = math.derivative(funcStr, 'x').compile();
+      expr.evaluate({x: 1});
+    } catch (e) {
+      alert("Kesalahan format f(x)! Pastikan penulisan fungsi matematika benar.");
+      return;
+    }
+
+    let a = parseFloat(document.getElementById('aNum').value);
+    let b = parseFloat(document.getElementById('bNum').value);
+    let x0 = parseFloat(document.getElementById('x0Num').value);
+
+    states = {
+      newton: { x: x0, active: (method === 'newton' || method === 'all'), done: false, success: false, iters: 0 },
+      bisection: { a: a, b: b, m: null, active: (method === 'bisection' || method === 'all'), done: false, success: false, iters: 0 },
+      regula: { a: a, b: b, m: null, active: (method === 'regula' || method === 'all'), done: false, success: false, iters: 0 }
+    };
+
+    if (states.bisection.active || states.regula.active) {
+      if (expr.evaluate({x: a}) * expr.evaluate({x: b}) > 0) {
+        alert("Peringatan: f(a) dan f(b) memiliki tanda yang sama. Bisection/Regula Falsi mungkin gagal menemukan akar pada rentang ini.");
+        return;
+      }
+    }
+
+    iteration = 0;
+    setupTable();
+    document.getElementById('tableBody').innerHTML = '';
+    document.getElementById('calcSteps').innerHTML = '';
+    document.getElementById('calcStepsContainer').style.display = 'block';
+    document.getElementById('tableWrapper').style.display = 'block';
+    document.getElementById('btnNext').disabled = false;
+
+    setupGraphs();
+
+    // PLOT TITIK & BATAS AWAL SEBELUM ITERASI BERJALAN
+    if (states.bisection.active) {
+      let fa = expr.evaluate({x: a});
+      let fb = expr.evaluate({x: b});
+      let divId = method === 'all' ? 'graph-bisection' : 'graph-main';
+      addLinesAndPoints(divId, [a, a, null, b, b], [0, fa, null, 0, fb], [a, b], [fa, fb], '#86868b', 'Batas Awal');
+    }
+    if (states.regula.active) {
+      let fa = expr.evaluate({x: a});
+      let fb = expr.evaluate({x: b});
+      let divId = method === 'all' ? 'graph-regula' : 'graph-main';
+      addLinesAndPoints(divId, [a, a, null, b, b], [0, fa, null, 0, fb], [a, b], [fa, fb], '#86868b', 'Batas Awal');
+    }
+    if (states.newton.active) {
+      let fx0 = expr.evaluate({x: x0});
+      let divId = method === 'all' ? 'graph-newton' : 'graph-main';
+      addLinesAndPoints(divId, [x0, x0], [0, fx0], [x0], [fx0], '#86868b', 'Tebakan Awal');
+    }
+  }
+
+  function setupTable() {
+    const head = document.getElementById('tableHead');
+    if (method === 'all') {
+      head.innerHTML = `<tr><th>Iterasi</th><th>Bis (x)</th><th>f(x) Bis</th><th>Reg (x)</th><th>f(x) Reg</th><th>Newt (x)</th><th>f(x) Newt</th></tr>`;
+    } else if (method === 'newton') {
+      head.innerHTML = `<tr><th>Iterasi</th><th>xₙ</th><th>f(xₙ)</th><th>f'(xₙ)</th><th>xₙ₊₁</th></tr>`;
+    } else {
+      head.innerHTML = `<tr><th>Iterasi</th><th>a</th><th>b</th><th>m (Tengah)</th><th>f(m)</th></tr>`;
+    }
+  }
+
+  function setupGraphs() {
+    const wrapper = document.getElementById('graphsWrapper');
+    wrapper.innerHTML = '';
+
+    if (method === 'all') {
+      wrapper.innerHTML = `
+        <div id="graph-bisection" class="graph-box" style="display:block;"></div>
+        <div id="graph-regula" class="graph-box" style="display:block;"></div>
+        <div id="graph-newton" class="graph-box" style="display:block;"></div>
+      `;
+      initPlotlyGraph('graph-bisection', 'Visualisasi: Bisection');
+      initPlotlyGraph('graph-regula', 'Visualisasi: Regula Falsi');
+      initPlotlyGraph('graph-newton', 'Visualisasi: Newton-Raphson');
+    } else {
+      wrapper.innerHTML = `<div id="graph-main" class="graph-box" style="display:block;"></div>`;
+      initPlotlyGraph('graph-main', 'Visualisasi Grafik f(x)');
+    }
+  }
+
+  function initPlotlyGraph(divId, title) {
+    let xValues = [], yValues = [];
+    for (let i = -10; i <= 10; i += 0.1) {
+      xValues.push(i);
+      yValues.push(expr.evaluate({x: i}));
+    }
+
+    let traceFunc = { x: xValues, y: yValues, mode: 'lines', name: 'Kurva f(x)', line: {color: '#0071e3', width: 2.5} };
+    let traceZero = { x: [-10, 10], y: [0, 0], mode: 'lines', name: 'Sumbu X', line: {color: 'rgba(0,0,0,0.3)', width: 1} };
+
+    let layout = {
+      title: { text: title, font: { size: 16 } },
+      paper_bgcolor: 'rgba(255,255,255,0)',
+      plot_bgcolor: 'rgba(255,255,255,0)',
+      font: { color: '#1d1d1f' },
+      xaxis: { title: 'Sumbu x', gridcolor: 'rgba(0,0,0,0.05)' },
+      yaxis: { title: 'f(x)', gridcolor: 'rgba(0,0,0,0.05)' },
+      margin: { l: 50, r: 20, t: 50, b: 60 },
+      showlegend: true, // MENAMPILKAN LEGEND (Rev 4)
+      legend: { orientation: 'h', y: -0.15 }
+    };
+
+    Plotly.newPlot(divId, [traceFunc, traceZero], layout, {scrollZoom: true, displayModeBar: true});
+  }
+
+  // Helper untuk menambah garis perhitungan & titik secara efisien tanpa duplikasi Legend
+  function addLinesAndPoints(divId, linesX, linesY, ptsX, ptsY, colorStr, label) {
+    let traceLines = {
+      x: linesX, y: linesY,
+      mode: 'lines', type: 'scatter',
+      name: label,
+      legendgroup: label, // Menyatukan marker & garis dalam 1 tombol Legend
+      line: { color: colorStr, width: 2, dash: 'dot' },
+      opacity: 0.7,
+      showlegend: false // Sembunyikan legenda terpisah untuk garis
+    };
+    let tracePts = {
+      x: ptsX, y: ptsY,
+      mode: 'markers', type: 'scatter',
+      name: label,
+      legendgroup: label,
+      marker: { size: 10, color: colorStr, line: {color: '#fff', width: 2} }
+    };
+    Plotly.addTraces(divId, [traceLines, tracePts]);
+  }
+
+  // Helper Khusus untuk mencetak Solusi Hijau (Rev 2)
+  function addFinalSolution(divId, xRoot) {
+    let traceSol = {
+      x: [xRoot], y: [0],
+      mode: 'markers+text', type: 'scatter',
+      name: 'Jawaban Benar',
+      text: ['  Jawaban: ' + xRoot.toFixed(5)],
+      textposition: 'top right',
+      textfont: { color: '#009900', size: 13, weight: 'bold' },
+      marker: { size: 14, color: '#00ff00', line: {color: '#006600', width: 2} }
+    };
+    Plotly.addTraces(divId, [traceSol]);
+  }
+
+  function nextIteration() {
+    iteration++;
+    let stepText = `<div class="step-item"><strong>Iterasi ${iteration}</strong><br><br>`;
+    let rowHtml = `<tr><td>${iteration}</td>`;
+
+    // --- NEWTON RAPHSON ---
+    if (states.newton.active && !states.newton.done) {
+      
+      // Langkah 1: Menentukan nilai tebakan awal x0 
+      // (Diambil dari state iterasi sebelumnya atau inisialisasi awal)
+      let x = states.newton.x; 
+      
+      let fx = expr.evaluate({x: x}); // f(x0)
+      let dfx = derivExpr.evaluate({x: x}); // g(x0) atau turunan f(x0)
+
+      // Langkah 2: Batas toleransi galat (epsilon) sudah ditentukan sebelumnya di luar blok ini.
+      // Langkah 4 (Pengecekan): Cek apakah nilai abs(f(x0)) sudah lebih kecil atau sama dengan epsilon.
+      // Jika iya, iterasi berhenti (kebalikan dari "Selama nilai abs(f(x0)) lebih besar...").
+      if (Math.abs(fx) <= epsilon) {
+        // Konvergen tercapai pada saat awal sebelum iterasi ini dihitung ulang
+        states.newton.done = true; states.newton.success = true; states.newton.iters = iteration - 1;
+        
+      } else if (dfx === 0) {
+        states.newton.done = true; states.newton.success = false;
+        stepText += `<span style="color:#ff3b30">Newton-Raphson Berhenti: Turunan bernilai 0.</span><br>`;
+        
+      } else {
+        // Langkah 3 & 4a: Hitung/Update nilai x1 dengan rumus x1 = x0 - f(x0)/g(x0)
+        let xNext = x - (fx / dfx); 
+        
+        if (method === 'newton') rowHtml += `<td>${x.toFixed(6)}</td><td>${fx.toFixed(6)}</td><td>${dfx.toFixed(6)}</td><td>${xNext.toFixed(6)}</td>`;
+        stepText += `<span class="txt-newton">Newton:</span> x = ${x.toFixed(5)} - (${fx.toFixed(5)} / ${dfx.toFixed(5)}) = <strong>${xNext.toFixed(6)}</strong><br>`;
+
+        // Langkah 4b: Update nilai x0 menjadi x1 untuk iterasi selanjutnya
+        states.newton.x = xNext; 
+        
+        let fnNext = expr.evaluate({x: xNext});
+
+        let divId = (method === 'all') ? 'graph-newton' : 'graph-main';
+        let linesX = [x, x, null, x, xNext];
+        let linesY = [0, fx, null, fx, 0];
+        addLinesAndPoints(divId, linesX, linesY, [x, xNext], [fx, 0], 'var(--color-newton)', `Iterasi ${iteration}`);
+
+        // Pengecekan konvergensi ulang untuk langkah ini
+        if (Math.abs(fnNext) <= epsilon) {
+          states.newton.done = true; states.newton.success = true; states.newton.iters = iteration;
+          
+          // Langkah 5: Solusi yang didapatkan adalah x1 (xNext)
+          addFinalSolution(divId, xNext); 
+        }
+      }
+    }
+
+    // --- BISECTION ---
+    if (states.bisection.active && !states.bisection.done) {
+      let s = states.bisection;
+      s.m = (s.a + s.b) / 2;
+      let fa = expr.evaluate({x: s.a});
+      let fm = expr.evaluate({x: s.m});
+      let fb = expr.evaluate({x: s.b});
+
+      if (method === 'bisection') rowHtml += `<td>${s.a.toFixed(6)}</td><td>${s.b.toFixed(6)}</td><td>${s.m.toFixed(6)}</td><td>${fm.toFixed(6)}</td>`;
+      stepText += `<span class="txt-bisection">Bisection:</span> m = (${s.a.toFixed(5)} + ${s.b.toFixed(5)}) / 2 = <strong>${s.m.toFixed(6)}</strong> (f(m) = ${fm.toFixed(5)})<br>`;
+
+      let divId = (method === 'all') ? 'graph-bisection' : 'graph-main';
+      let linesX = [s.a, s.a, null, s.b, s.b, null, s.m, s.m];
+      let linesY = [0, fa, null, 0, fb, null, 0, fm];
+      addLinesAndPoints(divId, linesX, linesY, [s.a, s.b, s.m], [fa, fb, fm], 'var(--color-bisection)', `Iterasi ${iteration}`);
+
+      if (Math.abs(fm) <= epsilon) {
+        s.done = true; s.success = true; s.iters = iteration;
+        addFinalSolution(divId, s.m);
+      } else {
+        if (fa * fm < 0) s.b = s.m; else s.a = s.m;
+      }
+    }
+
+    // --- REGULA FALSI ---
+    if (states.regula.active && !states.regula.done) {
+      let s = states.regula;
+      let fa = expr.evaluate({x: s.a});
+      let fb = expr.evaluate({x: s.b});
+
+      s.m = s.b - (fb * (s.b - s.a)) / (fb - fa);
+      let fm = expr.evaluate({x: s.m});
+
+      if (method === 'regula') rowHtml += `<td>${s.a.toFixed(6)}</td><td>${s.b.toFixed(6)}</td><td>${s.m.toFixed(6)}</td><td>${fm.toFixed(6)}</td>`;
+      stepText += `<span class="txt-regula">Regula Falsi:</span> m = ${s.b.toFixed(5)} - (${fb.toFixed(5)}*(${s.b.toFixed(5)}-${s.a.toFixed(5)}) / (${fb.toFixed(5)}-${fa.toFixed(5)})) = <strong>${s.m.toFixed(6)}</strong><br>`;
+
+      let divId = (method === 'all') ? 'graph-regula' : 'graph-main';
+      let linesX = [s.a, s.b, null, s.m, s.m];
+      let linesY = [fa, fb, null, 0, fm];
+      addLinesAndPoints(divId, linesX, linesY, [s.a, s.b, s.m], [fa, fb, fm], 'var(--color-regula)', `Iterasi ${iteration}`);
+
+      if (Math.abs(fm) <= epsilon) {
+        s.done = true; s.success = true; s.iters = iteration;
+        addFinalSolution(divId, s.m);
+      } else {
+        if (fa * fm < 0) s.b = s.m; else s.a = s.m;
+      }
+    }
+
+    // TABEL LAYOUT MULTIPLE (ALL)
+    if (method === 'all') {
+      let htmlAll = `<tr><td>${iteration}</td>`;
+      if(!states.bisection.done || states.bisection.iters === iteration) htmlAll += `<td>${states.bisection.m.toFixed(6)}</td><td>${expr.evaluate({x:states.bisection.m}).toFixed(6)}</td>`; else htmlAll += `<td style="color:#86868b">Selesai</td><td style="color:#86868b">✓</td>`;
+      if(!states.regula.done || states.regula.iters === iteration) htmlAll += `<td>${states.regula.m.toFixed(6)}</td><td>${expr.evaluate({x:states.regula.m}).toFixed(6)}</td>`; else htmlAll += `<td style="color:#86868b">Selesai</td><td style="color:#86868b">✓</td>`;
+      if(!states.newton.done || states.newton.iters === iteration) htmlAll += `<td>${states.newton.x.toFixed(6)}</td><td>${expr.evaluate({x:states.newton.x}).toFixed(6)}</td>`; else htmlAll += `<td style="color:#86868b">Selesai</td><td style="color:#86868b">✓</td>`;
+      rowHtml = htmlAll + `</tr>`;
+    } else {
+      rowHtml += `</tr>`;
+    }
+
+    document.getElementById('tableBody').insertAdjacentHTML('beforeend', rowHtml);
+    stepText += `</div>`;
+    document.getElementById('calcSteps').insertAdjacentHTML('beforeend', stepText);
+
+    // KESIMPULAN & PENGECEKAN SEMUA SELESAI (Rev 3)
+    if ((!states.newton.active || states.newton.done) && (!states.bisection.active || states.bisection.done) && (!states.regula.active || states.regula.done)) {
+      document.getElementById('btnNext').disabled = true;
+
+      let conclusionText = `<div class="summary-box">`;
+      conclusionText += `<strong style="font-size: 16px;">🎉 Perhitungan Selesai</strong><br>`;
+      conclusionText += `<p style="margin-top: 5px; color: var(--text-main);">Toleransi error (&epsilon; = ${epsilon}) telah tercapai.</p>`;
+
+      let results = [];
+      if(states.newton.active && states.newton.success) results.push({name: 'Newton-Raphson', iters: states.newton.iters, root: states.newton.x});
+      if(states.bisection.active && states.bisection.success) results.push({name: 'Bisection', iters: states.bisection.iters, root: states.bisection.m});
+      if(states.regula.active && states.regula.success) results.push({name: 'Regula Falsi', iters: states.regula.iters, root: states.regula.m});
+
+      results.sort((a, b) => a.iters - b.iters); // Urutkan yang tercepat di atas
+
+      if(results.length > 0) {
+        // Hanya tampilkan piala jika yang dibandingkan > 1
+        if(results.length > 1) {
+          let winner = results[0];
+          conclusionText += `<hr style="border:0; border-top:1px solid rgba(0,0,0,0.1); margin:15px 0;">`;
+          conclusionText += `<strong style="color:var(--apple-blue); font-size: 15px;">🏆 Metode Tercepat: ${winner.name}</strong><br>`;
+          conclusionText += `Menemukan akar di <strong>x = ${winner.root.toFixed(6)}</strong> dalam <strong>${winner.iters} iterasi</strong>.<br><br>`;
+        }
+
+        conclusionText += `<strong style="font-size:13px; color:var(--text-secondary);">Detail Jawaban Tiap Metode:</strong><ul style="margin-top:5px; padding-left:20px; font-size:14px;">`;
+        results.forEach(res => {
+          conclusionText += `<li><strong>${res.name}</strong> : Akar = <strong style="color:var(--apple-blue);">${res.root.toFixed(6)}</strong> (diselesaikan dalam ${res.iters} iterasi)</li>`;
+        });
+        conclusionText += `</ul>`;
+      }
+
+      conclusionText += `</div>`;
+      document.getElementById('calcSteps').insertAdjacentHTML('beforeend', conclusionText);
+    }
+  }
+</script>
+</body>
+</html>
